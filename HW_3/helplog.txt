@@ -1,1 +1,3 @@
 How to read file using c++: https://www.tutorialspoint.com/cplusplus/cpp_files_streams.htm
+Interpolation: https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/visibility-problem-depth-buffer-depth-interpolation
+Interpolation: https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/perspective-correct-interpolation-vertex-attributes

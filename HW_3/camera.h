@@ -19,6 +19,7 @@ public:
 
     camera& operator =(camera &c);
     vec4 transform(vec4 &v);
+    vec4 rotate(vec4 &v) {return view_orient * v;}
 };
 
 #endif // CAMERA_H

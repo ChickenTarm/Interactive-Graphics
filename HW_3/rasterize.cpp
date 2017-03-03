@@ -30,10 +30,10 @@ typedef struct img_struct {
   int w, h;
 } img_t;
 
-typedef struct z_buffer {
+struct z_buffer {
     float *data;
     int w, h;
-} z_buf;
+};
 
 std::vector<triangle> toNDC(camera &c, std::vector<triangle> triangles) {
     std::vector<triangle> temp;
@@ -77,7 +77,7 @@ void boundBox(triangle &t, int width, int height) {
     t.setBounds(minx, maxx, miny, maxy);
 }
 
-std::vector<triangle> visibility(camera &c, std::vector<triangle> triangles, int width, int height) {
+std::vector<triangle> visibility(std::vector<triangle> triangles, int width, int height) {
     std::vector<triangle> temp;
     for (int k = 0; k < ((int) triangles.size()); k = k + 1) {
         float z1 = triangles[k][0][2];
@@ -117,6 +117,11 @@ int main(int argc, char *argv[])
     float width;
     float height;
     img_t *pic = (img_t *) malloc(sizeof(img_t));
+    z_buffer *z_buf = (z_buffer *) malloc(sizeof(z_buffer));
+    int z_method = 0;
+    int color_method = 0;
+    bool gotDimension = false;
+    FILE *output;
     for (int i = 1; i < argc; i = i + 1) {
         std::string str(argv[i]);
         errno = 0;
@@ -124,24 +129,23 @@ int main(int argc, char *argv[])
         strtof(argv[i], &end);
         if (str.find(".obj") != std::string::npos) {
             LoadObj(shapes, materials, argv[1], NULL);
-//            cout << "LoadObj: "<< LoadObj(shapes, materials, argv[1], NULL) <<  endl;
             for (int j = 0; j < ((int) shapes.size()); j = j + 1) {
                 for (int i = 0; i < ((int) shapes[j].mesh.indices.size()); i = i + 3) {
-                    int index1 = shapes[j].mesh.indices[i];
-                    int index2 = shapes[j].mesh.indices[i + 1];
-                    int index3 = shapes[j].mesh.indices[i + 2];
-                    vec4 vertex1(shapes[j].mesh.positions[index1 * 3], shapes[j].mesh.positions[index1 * 3 + 1], shapes[j].mesh.positions[index1 * 3 + 2], 1);
-                    vec4 vertex2(shapes[j].mesh.positions[index2 * 3], shapes[j].mesh.positions[index2 * 3 + 1], shapes[j].mesh.positions[index2 * 3 + 2], 1);
-                    vec4 vertex3(shapes[j].mesh.positions[index3 * 3], shapes[j].mesh.positions[index3 * 3 + 1], shapes[j].mesh.positions[index3 * 3 + 2], 1);
-                    triangle t(vertex1, vertex2, vertex3);
+                    int index1 = shapes[j].mesh.indices[i] * 3;
+                    int index2 = shapes[j].mesh.indices[i + 1] * 3;
+                    int index3 = shapes[j].mesh.indices[i + 2] * 3;
+                    vec4 vertex1(shapes[j].mesh.positions[index1], shapes[j].mesh.positions[index1 + 1], shapes[j].mesh.positions[index1 + 2], 1);
+                    vec4 vertex2(shapes[j].mesh.positions[index2], shapes[j].mesh.positions[index2 + 1], shapes[j].mesh.positions[index2 + 2], 1);
+                    vec4 vertex3(shapes[j].mesh.positions[index3], shapes[j].mesh.positions[index3 + 1], shapes[j].mesh.positions[index3 + 2], 1);
+                    vec4 n1(shapes[j].mesh.normals[index1], shapes[j].mesh.normals[index1 + 1], shapes[j].mesh.normals[index1 + 2], 0);
+                    vec4 n2(shapes[j].mesh.normals[index2], shapes[j].mesh.normals[index2 + 1], shapes[j].mesh.normals[index2 + 2], 0);
+                    vec4 n3(shapes[j].mesh.normals[index3], shapes[j].mesh.normals[index3 + 1], shapes[j].mesh.normals[index3 + 2], 0);
+                    int mat_id = shapes[j].mesh.material_ids[i / 3];
+                    vec4 diffuse(materials[mat_id].diffuse[0], materials[mat_id].diffuse[1], materials[mat_id].diffuse[2], 0);
+                    triangle t(vertex1, vertex2, vertex3, n1, n2, n3, diffuse);
                     triangles.push_back(t);
                 }
             }
-//            cout << "Num Positions: " << shapes[0].mesh.positions.size() << endl;
-//            cout << "Num Indices: " << shapes[0].mesh.indices.size() << endl;
-//            cout << "Num Triangles: " << triangles.size() << endl;
-            cout << triangles[0] << endl;
-            cout << triangles[1] << endl;
         }
         else if (!strcmp(argv[i], "camera.txt")) {
             std::vector<float> param;
@@ -150,33 +154,95 @@ int main(int argc, char *argv[])
             while (camFile >> num) {
                 param.push_back(stof(num));
             }
-//            for (int j = 0; j < param.size(); j = j + 1) {
-//                cout << j << ": " << param[j] << endl;
-//            }
             camera c(param[0], param[1], param[2], param[3], param[4], param[5], param[6], param[7], param[8], param[9], param[10], param[11], param[12], param[13], param[14]);
             triangles = toNDC(c, triangles);
+            for (int k = 0; k < ((int) triangles.size()); k = k + 1) {
+                triangles[k].rotateNorms(c);
+            }
             cam = c;
         }
-        else if (errno == 0) {
-//            printf("width: %s/n height: %s\n", argv[i], argv[i + 1]);
+        else if (errno == 0 && !gotDimension) {
             width = strtof(argv[i], &end);
             i = i + 1;
             height = strtof(argv[i], &end);
+            gotDimension = true;
             pic->w = width;
             pic->h = height;
             pic->data = (pixel_t *) calloc(width * height, sizeof(pixel_t));
+            z_buf->data = (float *) malloc(width * height * sizeof(float));
+            z_buf->w = width;
+            z_buf->h = height;
+            for (int z = 0; z < z_buf->w * z_buf->h; z = z + 1) {
+                z_buf->data[z] = 2;
+            }
             triangles = toScreen(pic->w, pic->h, triangles);
-            triangles = visibility(cam, triangles, pic->w - 1, pic->h - 1);
-            cout << triangles[0] << endl;
-            cout << triangles[1] << endl;
+            triangles = visibility(triangles, pic->w - 1, pic->h - 1);
             for (int k = 0; k < ((int) triangles.size()); k = k + 1) {
-                printf("triangle %d:\n", k);
                 triangles[k].getPixels();
             }
         }
         else if (str.find(".ppm") != std::string::npos) {
-
+            assert(argv[i] != NULL);
+            output = fopen(argv[i], "wb+");
+            assert(output != NULL);
+            fprintf(output, "P6\n%d %d 255\n", pic->w, pic->h);
+        }
+        else if (!strcmp(argv[i], "--norm_gouraud_z")) {
+            z_method = 1;
+            color_method = 5;
+        }
+        else if (!strcmp(argv[i], "--norm_bary_z")) {
+            z_method = 2;
+            color_method = 6;
+        }
+        else if (!strcmp(argv[i], "--norm_gouraud")) {
+            color_method = 3;
+        }
+        else if (!strcmp(argv[i], "--norm_bary")) {
+            color_method = 4;
+        }
+        else if (!strcmp(argv[i], "--norm_flat")) {
+            color_method = 2;
+        }
+        else if (!strcmp(argv[i], "--white")) {
+            color_method = 1;
+        }
+        else {
+            break;
         }
     }
+    for (int k = 0; k < ((int) triangles.size()); k = k + 1) {
+        int range = triangles[k].max_y - triangles[k].min_y;
+        for (int r = 0; r < range; r = r + 1) {
+            int sx = triangles[k].getStartx(r);
+            int ex = triangles[k].getEndx(r);
+            float y = triangles[k].getY(r);
+            int py = y - .5;
+            for (int p = sx; p <= ex; p = p + 1) {
+                int index = p + py * pic->w;
+                float z_norm = triangles[k].getZ(sx, ex, y, p, z_method);
+                if (z_norm >= 0 && z_norm <= 1) {
+                    float zb = z_buf->data[index];
+                    if (z_norm < zb) {
+                        z_buf->data[index] = z_norm;
+                        //color pixel
+                        vec4 color = triangles[k].getColor(sx, ex, y, p, color_method);
+                        pic->data[index].r = color[0];
+                        pic->data[index].g = color[1];
+                        pic->data[index].b = color[2];
+                    }
+                }
+            }
+        }
+    }
+    for (int t = 0; t < pic->w * pic->h; t = t + 1) {
+        fwrite(&(pic->data[t].r), sizeof(pic->data[t].r), 1, output);
+        fwrite(&(pic->data[t].g), sizeof(pic->data[t].g), 1, output);
+        fwrite(&(pic->data[t].b), sizeof(pic->data[t].b), 1, output);
+    }
+    free(pic->data);
+    free(pic);
+    free(z_buf->data);
+    free(z_buf);
     return 0;
 }
