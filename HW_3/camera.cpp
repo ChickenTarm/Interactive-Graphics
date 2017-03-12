@@ -7,7 +7,7 @@ using namespace std;
 camera::camera() {
 }
 
-camera::camera(float l, float r, float t, float b, float n, float f, float e_x, float e_y, float e_z, float c_x, float c_y, float c_z, float u_x, float u_y, float u_z) {
+camera::camera(float l, float r, float b, float t, float n, float f, float e_x, float e_y, float e_z, float c_x, float c_y, float c_z, float u_x, float u_y, float u_z) {
     frust.left = l;
     frust.right = r;
     frust.top = t;
@@ -64,5 +64,5 @@ camera& camera::operator =(camera &c) {
 }
 
 vec4 camera::transform(vec4 &v) {
-    return final * v;
+    return final *v;
 }

@@ -121,6 +121,7 @@ int main(int argc, char *argv[])
     int z_method = 0;
     int color_method = 0;
     bool gotDimension = false;
+    bool readCam = false;
     FILE *output;
     for (int i = 1; i < argc; i = i + 1) {
         std::string str(argv[i]);
@@ -147,10 +148,10 @@ int main(int argc, char *argv[])
                 }
             }
         }
-        else if (!strcmp(argv[i], "camera.txt")) {
+        else if (str.find("camera") != std::string::npos && !readCam) {
             std::vector<float> param;
             std::string num;
-            std::ifstream camFile("camera.txt");
+            std::ifstream camFile(argv[i]);
             while (camFile >> num) {
                 param.push_back(stof(num));
             }
@@ -160,6 +161,7 @@ int main(int argc, char *argv[])
                 triangles[k].rotateNorms(c);
             }
             cam = c;
+            readCam = true;
         }
         else if (errno == 0 && !gotDimension) {
             width = strtof(argv[i], &end);
