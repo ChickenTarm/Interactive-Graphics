@@ -754,7 +754,11 @@ void ImageViewer::PixelCalc() {
         fwrite(&(renderedPic->data[t].b), sizeof(renderedPic->data[t].b), 1, outputTemp);
     }
     fclose(outputTemp);
+    unsigned char *start = &renderedPic->data[0].r;
+    cout << "Start: " << start << endl;
+
     img.load(filePath);
+//    img.loadFromData(&renderedPic->data[0].r, renderedPic->w * renderedPic->h * 3, "PPM");
     imgShower->setPixmap(img);
 }
 
