@@ -37,21 +37,38 @@ struct row_col {
 
 private:
     vec4 vert[3];
+    
+    //y-intersect of the edges and the slopes
     float b0, b1, b2;
     slope m0, m1, m2;
+    
+    //Vertical edge at the beginning or of triangle
     bool vertAtStart, vertAtEnd;
+    
+    // the x coordinate where the vertical is
     int vertical;
     tuple t;
+    
+    //Stores the last computed interpolated Z so don't have to recalc for coloring
     float recent_z;
+    
+    //Stores the z of the horizontal intersects with the associated y
     row r;
+    //Stores the color of the horizontal intersect with the associated y
     row_col rc;
 public:
     vec4 norm[3];
     vec4 vert_color[3];
     vec4 diffuse;
     vec4 diffuse_rgb;
+    
+    //Bounding box
     int min_x, max_x, min_y, max_y;
+    
+    //Stores the x-range of pixels for the associated y row
     triple *pix;
+    
+    
     triangle();
     triangle(vec4 v1, vec4 v2, vec4 v3, vec4 n1, vec4 n2, vec4 n3, vec4 diff);
     vec4 &operator[](unsigned int index);

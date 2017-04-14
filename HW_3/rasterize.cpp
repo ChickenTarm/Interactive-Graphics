@@ -129,9 +129,11 @@ int main(int argc, char *argv[])
         char *end;
         strtof(argv[i], &end);
         if (str.find(".obj") != std::string::npos) {
+          //Parses OBJ
             LoadObj(shapes, materials, argv[1], NULL);
             for (int j = 0; j < ((int) shapes.size()); j = j + 1) {
                 for (int i = 0; i < ((int) shapes[j].mesh.indices.size()); i = i + 3) {
+                  //Creates the triangles and stores them
                     int index1 = shapes[j].mesh.indices[i] * 3;
                     int index2 = shapes[j].mesh.indices[i + 1] * 3;
                     int index3 = shapes[j].mesh.indices[i + 2] * 3;
@@ -215,11 +217,13 @@ int main(int argc, char *argv[])
     }
     for (int k = 0; k < ((int) triangles.size()); k = k + 1) {
         int range = triangles[k].max_y - triangles[k].min_y;
+      // Iterate over the y height
         for (int r = 0; r < range; r = r + 1) {
             int sx = triangles[k].getStartx(r);
             int ex = triangles[k].getEndx(r);
             float y = triangles[k].getY(r);
             int py = y - .5;
+          // Iterate over the x range
             for (int p = sx; p <= ex; p = p + 1) {
                 int index = p + py * pic->w;
                 float z_norm = triangles[k].getZ(sx, ex, y, p, z_method);
@@ -236,6 +240,7 @@ int main(int argc, char *argv[])
                 }
             }
         }
+        free(triangles[k].pix);
     }
     for (int t = 0; t < pic->w * pic->h; t = t + 1) {
         fwrite(&(pic->data[t].r), sizeof(pic->data[t].r), 1, output);
